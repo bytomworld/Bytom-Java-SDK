@@ -3,6 +3,21 @@
 This page will document the API classes and ways to properly use the API.
 Subsequent new releases also maintain backward compatibility with this class approach.
 
+## Basic Usage
+
+```
+public static Client generateClient() throws BytomException {
+    String coreURL = Configuration.getValue("bytom.api.url");
+    String accessToken = Configuration.getValue("client.access.token");
+    if (coreURL == null || coreURL.isEmpty()) {
+        coreURL = "http://127.0.0.1:9888/";
+    }
+    return new Client(coreURL, accessToken);
+}
+
+Client client = TestUtils.generateClient();
+```
+
 ## API methods
 
 * [`Key API`](#key-api)
@@ -17,6 +32,14 @@ Subsequent new releases also maintain backward compatibility with this class app
 
 ## Key API
 
+```java
+//example
+String alias = "KeyTest.testKeyCreate.successli004";
+String password = "123456";
+
+Key.Builder builder = new Key.Builder().setAlias(alias).setPassword(password);
+Key key = Key.create(client, builder);
+```
 
 #### createKey
 
@@ -89,6 +112,17 @@ none if the key password is reset successfully.
 
 ## Account API
 
+```java
+//example
+String alias = "sender-account";
+Integer quorum = 1;
+List<String> root_xpubs = new ArrayList<String>();
+root_xpubs.add(senderKey.xpub);
+
+Account.Builder builder = new Account.Builder().setAlias(alias).setQuorum(quorum).setRootXpub(root_xpubs);
+
+Account account = Account.create(client, builder);
+```
 
 #### createAccount
 
@@ -153,6 +187,14 @@ Receiver create(Client client);
 
 - `Receiver` - *receiver*, Receiver object.
 
+```java
+//example
+String alias = receiverAccount.alias;
+String id = receiverAccount.id;
+
+Account.ReceiverBuilder receiverBuilder = new Account.ReceiverBuilder().setAccountAlias(alias).setAccountId(id);
+Receiver receiver = receiverBuilder.create(client);
+
 ----
 
 #### listAddresses
@@ -189,6 +231,18 @@ Address validate(Client client, String address);
 
 ## Asset API
 
+```java
+//example
+ String alias = "receiver-asset";
+
+List<String> xpubs = receiverAccount.xpubs;
+
+Asset.Builder builder = new Asset.Builder()
+        .setAlias(alias)
+        .setQuorum(1)
+        .setRootXpubs(xpubs);
+receiverAsset = builder.create(client);
+```
 
 #### createAsset
 
@@ -287,6 +341,30 @@ List<UnspentOutput> list(Client client);
 
 ## Transaction API
 
+```java
+//example
+logger.info("before transaction:");
+List<Balance> balanceList = new Balance.QueryBuilder().list(client);
+logger.info("transaction:");
+Transaction.Template controlAddress = new Transaction.Builder()
+        .addAction(
+                new Transaction.Action.SpendFromAccount()
+                        .setAccountId(senderAccount.id)
+                        .setAssetId(senderAsset.id)
+                        .setAmount(300000000)
+        )
+        .addAction(
+                new Transaction.Action.ControlWithAddress()
+                        .setAddress(receiverAddress.address)
+                        .setAssetId(senderAsset.id)
+                        .setAmount(200000000)
+        ).build(client);
+Transaction.Template singer = new Transaction.SignerBuilder().sign(client,
+        controlAddress, "123456");
+Transaction.SubmitResponse txs = Transaction.submit(client, singer);
+logger.info("after transaction.");
+balanceList = new Balance.QueryBuilder().list(client);
+```
 
 #### buildTransaction
 
@@ -428,6 +506,15 @@ none if restore wallet success.
 
 ## Access Token API
 
+```java
+//example
+AccessToken accessToken = new AccessToken.Builder().setId("sheng").create(client);
+
+List<AccessToken> tokenList = AccessToken.list(client);
+
+String secret = "5e37378eb59de6b10e60f2247ebf71c4955002e75e0cd31ede3bf48813a0a799";
+AccessToken.check(client, "sheng", secret);
+```
 
 #### createAccessToken
 
@@ -597,7 +684,7 @@ BlockHashRate getHashRate(Client client);
 #### isMining
 
 ```java
-boolean isMining(Client client);
+Boolean isMining(Client client);
 ```
 
 ##### Parameters
@@ -613,7 +700,7 @@ boolean isMining(Client client);
 #### setMining
 
 ```java
-void setMining(Client client, boolean isMining);
+void setMining(Client client, Boolean isMining);
 ```
 
 ##### Parameters
@@ -660,7 +747,7 @@ Gas gasRate(Client client);
 #### verifyMessage
 
 ```java
-boolean verifyMessage(Client client);
+Boolean verifyMessage(Client client);
 ```
 
 ##### Parameters
